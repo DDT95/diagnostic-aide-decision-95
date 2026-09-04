@@ -605,6 +605,7 @@ export default function DecisionTerritorialePage() {
     activeLayersRef = useRef<Record<string, boolean>>({}),
     serviceCategoriesRef = useRef<Record<string, boolean>>({}),
     sourceDialog = useRef<HTMLDialogElement>(null),
+    initialBoundsRef = useRef<any>(null),
     requestRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState("");
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -685,6 +686,7 @@ export default function DecisionTerritorialePage() {
         [48.89, 1.6],
         [49.25, 2.6],
       ]);
+      initialBoundsRef.current = initialBounds;
       const map = L.map(mapNode.current, {
         zoomControl: false,
         minZoom: 9,
@@ -1796,6 +1798,13 @@ export default function DecisionTerritorialePage() {
     setQuery("");
     setLoading(false);
   }
+  function recenterValDoise() {
+    if (initialBoundsRef.current)
+      mapRef.current?.fitBounds(initialBoundsRef.current, {
+        padding: [8, 8],
+        animate: false,
+      });
+  }
   async function openDecisionPdf() {
     if (!analysis) return;
     const viewer = window.open("", "_blank");
@@ -2515,6 +2524,13 @@ export default function DecisionTerritorialePage() {
             />
             <button aria-label="Analyser">→</button>
           </form>
+          <button
+            type="button"
+            className="decision-sources-button"
+            onClick={recenterValDoise}
+          >
+            Recentrer sur le Val-d’Oise
+          </button>
           <div className="decision-theme-heading">
             <span>COUCHES ACTIVES</span>
             <button type="button" onClick={clearAllLayers}>
