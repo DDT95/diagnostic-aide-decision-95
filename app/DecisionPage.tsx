@@ -291,6 +291,37 @@ const percent = (value: unknown) =>
   value == null || String(value).trim() === ""
     ? "Non renseigné"
     : `${String(value).replace(/\s*%\s*$/, "")} %`;
+const PLU_ZONE_COLORS: Record<string, { stroke: string; fill: string }> = {
+  U: { stroke: "#c9184a", fill: "#ff6b8a" },
+  AU: { stroke: "#d9750a", fill: "#ffb454" },
+  A: { stroke: "#a68a00", fill: "#f2d24f" },
+  N: { stroke: "#166534", fill: "#5fbf6d" },
+};
+const pluZoneStyle = (feature?: Feature) => {
+  const typezone = String(feature?.properties?.typezone || "").toUpperCase();
+  const palette = PLU_ZONE_COLORS[typezone] || {
+    stroke: "#3153a4",
+    fill: "#4fd1ff",
+  };
+  return {
+    color: palette.stroke,
+    weight: 1.4,
+    fillColor: palette.fill,
+    fillOpacity: 0.32,
+  };
+};
+const MOS_GRAND_POSTE_COLORS: Record<string, string> = {
+  "1": "#e8871e",
+  "2": "#8e44ad",
+  "3": "#7f8c8d",
+  "4": "#8d6e63",
+  "5": "#d4c04a",
+  "6": "#1b7837",
+  "7": "#66bd63",
+  "8": "#3182bd",
+};
+const mosColor = (code: unknown) =>
+  MOS_GRAND_POSTE_COLORS[String(code || "").trim()[0]] || "#b9c2cc";
 const rnbStatus = (value: unknown) =>
   ({
     constructed: "Construit",
@@ -1411,10 +1442,7 @@ export default function DecisionTerritorialePage() {
       return;
     }
     if (id === "buildings") {
-      if (map.getZoom() < 16) {
-        setLoadingLayers((current) => ({ ...current, [id]: false }));
-        return;
-      }
+      if (map.getZoom() < 16) map.setZoom(16, { animate: false });
       setLoadingLayers((current) => ({ ...current, [id]: true }));
       const b = map.getBounds();
       const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(
@@ -1455,28 +1483,42 @@ export default function DecisionTerritorialePage() {
       return;
     }
     if (id === "mos") {
+      if (map.getZoom() < 13) map.setZoom(13, { animate: false });
+      setLoadingLayers((current) => ({ ...current, [id]: true }));
       const b = map.getBounds(),
-        size = map.getSize(),
         params = new URLSearchParams({
-          bbox: `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`,
-          bboxSR: "4326",
-          imageSR: "4326",
-          layers: "show:0",
-          size: `${Math.max(256, Math.round(size.x))},${Math.max(256, Math.round(size.y))}`,
-          format: "png32",
-          transparent: "true",
-          f: "image",
+          geometry: `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`,
+          geometryType: "esriGeometryEnvelope",
+          inSR: "4326",
+          outSR: "4326",
+          spatialRel: "esriSpatialRelIntersects",
+          outFields: "mos2025",
+          maxAllowableOffset: "0.00003",
+          returnGeometry: "true",
+          f: "geojson",
         });
-      const layer = L.imageOverlay(
-        `https://geoweb.iau-idf.fr/agsmap1/rest/services/MOS_MOS/mos2025_79/MapServer/export?${params}`,
-        b,
-        {
-          opacity: 0.72,
-          interactive: false,
-          attribution: "© Institut Paris Region · MOS 2025",
-        },
-      ).addTo(map);
+      const collection = await jsonOr<any>(
+        `https://geoweb.iau-idf.fr/agsmap1/rest/services/OPENDATA/OpendataIAU4/MapServer/25/query?${params}`,
+        { features: [] },
+      );
+      if (
+        !activeLayersRef.current[id] ||
+        layerRequestRef.current[id] !== requestId
+      ) {
+        setLoadingLayers((current) => ({ ...current, [id]: false }));
+        return;
+      }
+      const layer = L.geoJSON(collection, {
+        style: (feature?: Feature) => ({
+          color: "#5f6b7a",
+          weight: 0.4,
+          fillColor: mosColor(feature?.properties?.mos2025),
+          fillOpacity: 0.55,
+        }),
+        interactive: false,
+      }).addTo(map);
       mapLayersRef.current[id] = layer;
+      setLoadingLayers((current) => ({ ...current, [id]: false }));
       return;
     }
     if (id === "peb") {
@@ -1591,12 +1633,7 @@ export default function DecisionTerritorialePage() {
         {
           style:
             id === "plu"
-              ? {
-                  color: "#3153a4",
-                  weight: 1.4,
-                  fillColor: "#4fd1ff",
-                  fillOpacity: 0.16,
-                }
+              ? pluZoneStyle
               : {
                   color: "#6f4c9b",
                   weight: 1.8,
@@ -1697,7 +1734,7 @@ export default function DecisionTerritorialePage() {
     );
     const coords = data.features?.[0]?.geometry?.coordinates;
     if (coords) {
-      mapRef.current?.setView([coords[1], coords[0]], 14, { animate: false });
+      mapRef.current?.setView([coords[1], coords[0]], 16, { animate: false });
       analyse(coords[0], coords[1]);
     } else setLoading(false);
   }
