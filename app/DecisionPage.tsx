@@ -1432,6 +1432,7 @@ export default function DecisionTerritorialePage() {
     const L = (window as any).L,
       map = mapRef.current;
     if (!L || !map) return;
+    map.invalidateSize({ animate: false, pan: false });
     const requestId = (layerRequestRef.current[id] || 0) + 1;
     layerRequestRef.current[id] = requestId;
     const old = mapLayersRef.current[id];
