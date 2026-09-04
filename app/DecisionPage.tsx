@@ -1461,7 +1461,7 @@ export default function DecisionTerritorialePage() {
         ",",
       );
       const collection = await jsonOr<any>(
-        `https://rnb-api.beta.gouv.fr/api/alpha/ogc/collections/buildings/items?bbox=${encodeURIComponent(bbox)}&limit=500`,
+        `https://rnb-api.beta.gouv.fr/api/alpha/ogc/collections/buildings/items?bbox=${encodeURIComponent(bbox)}&limit=100`,
         { features: [] },
       );
       if (
