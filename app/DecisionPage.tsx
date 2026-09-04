@@ -225,6 +225,18 @@ const MAP_LAYERS = [
   ],
   ["peb", "PEB · bruit aérien", "Risques et nuisances", "#6f4c9b"],
   [
+    "noiseRoad",
+    "Niveaux sonores routiers",
+    "Risques et nuisances",
+    "#e1000f",
+  ],
+  [
+    "noiseRail",
+    "Niveaux sonores ferroviaires",
+    "Risques et nuisances",
+    "#a558a0",
+  ],
+  [
     "isochrones",
     "Accessibilité piétonne · 15 min",
     "Accessibilité et transports",
@@ -255,7 +267,7 @@ const LAYER_GROUPS = [
     "Urbanisme et foncier",
     ["cadastre", "buildings", "mos", "plu", "servitudes"],
   ],
-  ["Risques et nuisances", ["peb"]],
+  ["Risques et nuisances", ["peb", "noiseRoad", "noiseRail"]],
   [
     "Accessibilité et transports",
     ["isochrones", "routes", "services", "busStops", "busLines", "stations"],
@@ -1535,6 +1547,38 @@ export default function DecisionTerritorialePage() {
       mapLayersRef.current[id] = layer;
       return;
     }
+    if (id === "noiseRoad") {
+      const layer = L.imageOverlay(
+        "https://ddt95.github.io/val-doise-nuisances/data/noise-road.png",
+        [
+          [48.911488, 1.6035671],
+          [49.248488, 2.5965671],
+        ],
+        {
+          opacity: 0.76,
+          interactive: false,
+          attribution: "© DDT 95 · Bruitparif",
+        },
+      ).addTo(map);
+      mapLayersRef.current[id] = layer;
+      return;
+    }
+    if (id === "noiseRail") {
+      const layer = L.imageOverlay(
+        "https://ddt95.github.io/val-doise-nuisances/data/noise-rail.png",
+        [
+          [48.911488, 1.6035671],
+          [49.248488, 2.5965671],
+        ],
+        {
+          opacity: 0.78,
+          interactive: false,
+          attribution: "© DDT 95 · Bruitparif",
+        },
+      ).addTo(map);
+      mapLayersRef.current[id] = layer;
+      return;
+    }
     if (id === "busStops") {
       const bounds = map.getBounds().pad(0.05),
         renderer = L.canvas({ padding: 0.2 }),
@@ -2035,7 +2079,7 @@ export default function DecisionTerritorialePage() {
             "Consommation énergétique",
             dpe.conso_5_usages_ep_m2 == null
               ? "Non renseigné"
-              : `${dpe.conso_5_usages_ep_m2} kWhEP/m²/an`,
+              : `${Math.round(Number(dpe.conso_5_usages_ep_m2) * 10) / 10} kWhEP/m²/an`,
           ],
           ["Copropriété immatriculée", rnc.numero_immat ? "Oui" : "Non"],
           [
@@ -2241,7 +2285,7 @@ export default function DecisionTerritorialePage() {
         [
           "Prix de l’eau",
           analysis.water?.price
-            ? `${analysis.water.price} €/m³`
+            ? `${Number(analysis.water.price).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €/m³`
             : "Non renseigné",
         ],
       ],
@@ -3305,8 +3349,10 @@ function BuildingDetails({ analysis }: { analysis: Analysis }) {
   const dpeClass = dpe.classe_bilan_dpe || dpe.classe_conso_energie_arrete_2012;
   const gesClass =
     dpe.classe_emission_ges || dpe.classe_emission_ges_arrete_2012;
-  const consumption =
+  const consumptionRaw =
     dpe.conso_5_usages_ep_m2 ?? dpe.conso_3_usages_ep_m2_arrete_2012;
+  const consumption =
+    consumptionRaw == null ? null : Math.round(Number(consumptionRaw) * 10) / 10;
   const totalHousing = ffo.nb_log ?? building.nb_log;
   const socialHousing = rpls.nb_log;
   const renovationRows = Object.entries(renovation)
