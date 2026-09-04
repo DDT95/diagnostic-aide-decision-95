@@ -1,4 +1,4 @@
-name: Publier l’Atlas sur GitHub Pages
+name: Publier le diagnostic d’aide à la décision sur GitHub Pages
 
 on:
   push:
