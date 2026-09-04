@@ -1701,6 +1701,19 @@ export default function DecisionTerritorialePage() {
       analyse(coords[0], coords[1]);
     } else setLoading(false);
   }
+  function resetAnalysis() {
+    requestRef.current?.abort();
+    const map = mapRef.current;
+    if (markerRef.current && map) map.removeLayer(markerRef.current);
+    markerRef.current = null;
+    roadLayers.current.forEach((layer) => map?.removeLayer(layer));
+    roadLayers.current = [];
+    if (mapLayersRef.current.routes && map?.hasLayer(mapLayersRef.current.routes))
+      map.removeLayer(mapLayersRef.current.routes);
+    setAnalysis(null);
+    setQuery("");
+    setLoading(false);
+  }
   async function openDecisionPdf() {
     if (!analysis) return;
     const viewer = window.open("", "_blank");
@@ -2536,8 +2549,9 @@ export default function DecisionTerritorialePage() {
             </p>
             <button
               className="decision-close"
-              onClick={() => setAnalysis(null)}
-              aria-label="Fermer"
+              onClick={resetAnalysis}
+              aria-label="Nouvelle recherche"
+              title="Nouvelle recherche"
             >
               ×
             </button>
