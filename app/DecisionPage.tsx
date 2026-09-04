@@ -688,6 +688,13 @@ export default function DecisionTerritorialePage() {
       if (cancelled || mapRef.current || !mapNode.current) return;
       const L = (window as any).L;
       if (!L) return;
+      if (
+        mapNode.current.offsetWidth === 0 ||
+        mapNode.current.offsetHeight === 0
+      ) {
+        requestAnimationFrame(startMap);
+        return;
+      }
       const initialBounds = L.latLngBounds([
         [48.89, 1.6],
         [49.25, 2.6],
@@ -704,9 +711,7 @@ export default function DecisionTerritorialePage() {
       const sharedParams = new URLSearchParams(window.location.search);
       const sharedLon = Number(sharedParams.get("lon"));
       const sharedLat = Number(sharedParams.get("lat"));
-      document.body.dataset.debugShared = `${window.location.search}|${sharedLon}|${sharedLat}|${sharedParams.has("lon")}`;
       if (Number.isFinite(sharedLon) && Number.isFinite(sharedLat) && sharedParams.has("lon")) {
-        document.body.dataset.debugSharedCalled = "yes";
         map.setView([sharedLat, sharedLon], 16, { animate: false });
         analyse(sharedLon, sharedLat);
       }
