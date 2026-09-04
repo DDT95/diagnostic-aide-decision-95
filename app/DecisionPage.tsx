@@ -214,6 +214,12 @@ const SOURCE_LINKS = [
 
 const MAP_LAYERS = [
   ["cadastre", "Cadastre", "Urbanisme et foncier", "#000091"],
+  [
+    "historicAerial",
+    "Photo aérienne 1950-1965",
+    "Urbanisme et foncier",
+    "#647381",
+  ],
   ["buildings", "Bâtiments · RNB / BDNB", "Urbanisme et foncier", "#e77735"],
   ["mos", "MOS 2025 · occupation du sol", "Urbanisme et foncier", "#009081"],
   ["plu", "PLU / PLUi", "Urbanisme et foncier", "#3153a4"],
@@ -265,7 +271,7 @@ const MAP_LAYERS = [
 const LAYER_GROUPS = [
   [
     "Urbanisme et foncier",
-    ["cadastre", "buildings", "mos", "plu", "servitudes"],
+    ["cadastre", "historicAerial", "buildings", "mos", "plu", "servitudes"],
   ],
   ["Risques et nuisances", ["peb", "noiseRoad", "noiseRail"]],
   [
@@ -695,6 +701,13 @@ export default function DecisionTerritorialePage() {
       mapRef.current = map;
       map.setMaxBounds(initialBounds.pad(0.28));
       L.control.zoom({ position: "bottomleft" }).addTo(map);
+      const sharedParams = new URLSearchParams(window.location.search);
+      const sharedLon = Number(sharedParams.get("lon"));
+      const sharedLat = Number(sharedParams.get("lat"));
+      if (Number.isFinite(sharedLon) && Number.isFinite(sharedLat) && sharedParams.has("lon")) {
+        map.setView([sharedLat, sharedLon], 16, { animate: false });
+        analyse(sharedLon, sharedLat);
+      }
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         className: "decision-neutral-tiles",
@@ -790,6 +803,10 @@ export default function DecisionTerritorialePage() {
     const controller = new AbortController();
     requestRef.current = controller;
     setLoading(true);
+    const shareUrl = new URL(window.location.href);
+    shareUrl.searchParams.set("lon", lon.toFixed(6));
+    shareUrl.searchParams.set("lat", lat.toFixed(6));
+    window.history.replaceState(null, "", shareUrl);
     const errors: string[] = [];
     const geom = pointGeom(lon, lat);
     const spatialCommune = communesRef.current.find((feature) =>
@@ -1456,6 +1473,20 @@ export default function DecisionTerritorialePage() {
       mapLayersRef.current[id] = layer;
       return;
     }
+    if (id === "historicAerial") {
+      const layer = L.tileLayer
+        .wms("https://data.geopf.fr/wms-r/wms", {
+          layers: "ORTHOIMAGERY.ORTHOPHOTOS.1950-1965",
+          styles: "",
+          format: "image/png",
+          transparent: false,
+          opacity: 1,
+          attribution: "© IGN · Remonter le temps",
+        })
+        .addTo(map);
+      mapLayersRef.current[id] = layer;
+      return;
+    }
     if (id === "buildings") {
       if (map.getZoom() < 16) map.setZoom(16, { animate: false });
       setLoadingLayers((current) => ({ ...current, [id]: true }));
@@ -1797,6 +1828,10 @@ export default function DecisionTerritorialePage() {
     setAnalysis(null);
     setQuery("");
     setLoading(false);
+    const shareUrl = new URL(window.location.href);
+    shareUrl.searchParams.delete("lon");
+    shareUrl.searchParams.delete("lat");
+    window.history.replaceState(null, "", shareUrl);
   }
   function recenterValDoise() {
     if (initialBoundsRef.current)
@@ -2683,6 +2718,15 @@ export default function DecisionTerritorialePage() {
                       )}
                     />
                     <Kpi
+                      label="Description de la zone"
+                      value={String(
+                        first(analysis.zones[0]?.properties, [
+                          "libelong",
+                          "libelle",
+                        ]),
+                      )}
+                    />
+                    <Kpi
                       label="Servitudes intersectées"
                       value={String(analysis.servitudes.length)}
                     />
@@ -2699,11 +2743,11 @@ export default function DecisionTerritorialePage() {
                   </div>
                   <div className="decision-links">
                     <a
-                      href="https://www.geoportail-urbanisme.gouv.fr/"
+                      href={`https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${analysis.lon}&lat=${analysis.lat}&zoom=17`}
                       target="_blank"
                       rel="noreferrer"
                     >
-                      GPU
+                      GPU · zonage et règlement
                     </a>
                     <a
                       href="https://www.cadastre.gouv.fr/"
@@ -2713,6 +2757,15 @@ export default function DecisionTerritorialePage() {
                       Cadastre
                     </a>
                   </div>
+                  {first(analysis.zones[0]?.properties, ["nomfic"], "") ? (
+                    <p className="decision-empty">
+                      Document de référence :{" "}
+                      {String(
+                        first(analysis.zones[0]?.properties, ["nomfic"], ""),
+                      )}{" "}
+                      (téléchargeable depuis le GPU ci-dessus)
+                    </p>
+                  ) : null}
                 </Section>
                 {analysis.selectedBuilding && (
                   <BuildingDetails analysis={analysis} />
