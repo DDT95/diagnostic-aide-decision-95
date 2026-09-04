@@ -704,9 +704,9 @@ export default function DecisionTerritorialePage() {
       const sharedParams = new URLSearchParams(window.location.search);
       const sharedLon = Number(sharedParams.get("lon"));
       const sharedLat = Number(sharedParams.get("lat"));
-      console.log("DEBUG shared", window.location.search, sharedLon, sharedLat);
+      document.body.dataset.debugShared = `${window.location.search}|${sharedLon}|${sharedLat}|${sharedParams.has("lon")}`;
       if (Number.isFinite(sharedLon) && Number.isFinite(sharedLat) && sharedParams.has("lon")) {
-        console.log("DEBUG shared: calling analyse");
+        document.body.dataset.debugSharedCalled = "yes";
         map.setView([sharedLat, sharedLon], 16, { animate: false });
         analyse(sharedLon, sharedLat);
       }
