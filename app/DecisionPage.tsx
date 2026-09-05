@@ -31,6 +31,7 @@ type Analysis = {
   codeInsee: string;
   parcel?: Feature;
   foncierPublic?: [string, string, string] | null;
+  publicOwners: string[];
   zones: Feature[];
   servitudes: Feature[];
   risks: any[];
@@ -534,6 +535,35 @@ const mosColor = (code: unknown) => {
                 : n <= 78
                   ? "#737b87"
                   : "#e1000f";
+};
+const uniqueValues = (values: unknown[]) =>
+  [
+    ...new Set(
+      values
+        .flatMap((value) => (Array.isArray(value) ? value : value ? [value] : []))
+        .map(String),
+    ),
+  ];
+const classifyOwners = (owners: string[]) => {
+  if (
+    owners.some((o) =>
+      /\bETAT\b|MINISTERE|DIRECTION (DEPARTEMENTALE|REGIONALE|GENERALE)|PREFECTURE/i.test(
+        o,
+      ),
+    )
+  )
+    return "Foncier de l’État détecté";
+  if (
+    owners.some((o) =>
+      /COMMUNE|DEPARTEMENT|REGION|COMMUNAUTE|METROPOLE|SYNDICAT|ETABLISSEMENT PUBLIC|OFFICE PUBLIC/i.test(
+        o,
+      ),
+    )
+  )
+    return "Foncier public local détecté";
+  return owners.length
+    ? "Personne morale identifiée"
+    : "Non disponible en données ouvertes";
 };
 const parcelBuildingSummary = (
   buildings: any[],
@@ -1083,6 +1113,8 @@ export default function DecisionTerritorialePage() {
       noiseRoad: [],
       noiseRail: [],
       errors: [],
+      foncierPublic: null,
+      publicOwners: [],
     });
     drawSelection(lon, lat);
     const [ban, parcel, zones, supS, supL, supP, risks, iso15] =
@@ -1340,6 +1372,11 @@ export default function DecisionTerritorialePage() {
       codeInsee: address.citycode || spatialCode,
       parcel: selectedParcel,
       foncierPublic: foncierPublicRef.current[parcelId] || null,
+      publicOwners: uniqueValues(
+        (Array.isArray(buildings) ? buildings : []).map(
+          (b: any) => b.l_denomination_proprietaire,
+        ),
+      ),
       zones: zones.features || [],
       servitudes: [
         ...(supS.features || []),
@@ -2284,12 +2321,19 @@ export default function DecisionTerritorialePage() {
             : `${mosLabel(analysis.mos.mos2021)} → ${mosLabel(analysis.mos.mos2025)}`,
       ],
       ["Groupes de bâtiments BDNB", String(analysis.buildings.length)],
-      ...(analysis.foncierPublic
-        ? ([
-            ["Propriété et foncier public", analysis.foncierPublic[1]],
-            ["Propriétaire identifié", analysis.foncierPublic[2]],
-          ] as [string, string][])
-        : []),
+      [
+        "Propriété et foncier public",
+        analysis.foncierPublic
+          ? analysis.foncierPublic[1]
+          : classifyOwners(analysis.publicOwners),
+      ],
+      [
+        "Propriétaire identifié",
+        analysis.foncierPublic
+          ? analysis.foncierPublic[2]
+          : analysis.publicOwners.join(" · ") ||
+            "Non diffusé en open data (parcelle privée)",
+      ],
     ]);
     const buildingSummary = parcelBuildingSummary(
       analysis.buildings,
@@ -3101,24 +3145,29 @@ export default function DecisionTerritorialePage() {
                       value={String(analysis.buildings.length)}
                     />
                   </div>
-                  {analysis.foncierPublic && (
-                    <div
-                      className="decision-kpis"
-                      style={{ marginTop: 8 }}
-                    >
-                      <Kpi
-                        label="Propriété et foncier public"
-                        value={
-                          analysis.foncierPublic[1].charAt(0).toUpperCase() +
-                          analysis.foncierPublic[1].slice(1)
-                        }
-                      />
-                      <Kpi
-                        label="Propriétaire identifié"
-                        value={analysis.foncierPublic[2]}
-                      />
-                    </div>
-                  )}
+                  {(() => {
+                    const category = analysis.foncierPublic
+                      ? `${analysis.foncierPublic[1].charAt(0).toUpperCase()}${analysis.foncierPublic[1].slice(1)}`
+                      : classifyOwners(analysis.publicOwners);
+                    const ownerName = analysis.foncierPublic
+                      ? analysis.foncierPublic[2]
+                      : analysis.publicOwners.join(" · ") || null;
+                    return (
+                      <div className="decision-kpis" style={{ marginTop: 8 }}>
+                        <Kpi
+                          label="Propriété et foncier public"
+                          value={category}
+                        />
+                        <Kpi
+                          label="Propriétaire identifié"
+                          value={
+                            ownerName ||
+                            "Non diffusé en open data (parcelle privée)"
+                          }
+                        />
+                      </div>
+                    );
+                  })()}
                   <div className="decision-links">
                     <a
                       href={`https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${analysis.lon}&lat=${analysis.lat}&zoom=17`}
