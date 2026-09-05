@@ -535,6 +535,45 @@ const mosColor = (code: unknown) => {
                   ? "#737b87"
                   : "#e1000f";
 };
+const parcelBuildingSummary = (
+  buildings: any[],
+  parcelSurface: unknown,
+) => {
+  if (!buildings.length) return null;
+  const emprise = buildings.reduce(
+    (sum, b) => sum + (Number(b.s_geom_groupe) || 0),
+    0,
+  );
+  const surface = Number(parcelSurface) || 0;
+  const tauxEmprise =
+    surface > 0 ? Math.round((emprise / surface) * 1000) / 10 : null;
+  const hauteurs = buildings
+    .map((b) => Number(b.hauteur_mean))
+    .filter((v) => Number.isFinite(v));
+  const annees = buildings
+    .map((b) => Number(b.annee_construction))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  const logements = buildings.reduce(
+    (sum, b) => sum + (Number(b.nb_log) || 0),
+    0,
+  );
+  const usages = buildings
+    .map((b) => b.usage_principal_bdnb_open)
+    .filter(Boolean);
+  const dpeClasses = buildings
+    .map((b) => b.classe_bilan_dpe)
+    .filter(Boolean);
+  return {
+    count: buildings.length,
+    emprise: Math.round(emprise),
+    tauxEmprise,
+    hauteurMax: hauteurs.length ? Math.max(...hauteurs) : null,
+    anneeAncienne: annees.length ? Math.min(...annees) : null,
+    logements,
+    usagePrincipal: usages[0] || null,
+    dpe: dpeClasses[0] || null,
+  };
+};
 const rnbStatus = (value: unknown) =>
   ({
     constructed: "Construit",
@@ -2252,6 +2291,48 @@ export default function DecisionTerritorialePage() {
           ] as [string, string][])
         : []),
     ]);
+    const buildingSummary = parcelBuildingSummary(
+      analysis.buildings,
+      p.contenance,
+    );
+    if (buildingSummary)
+      section(
+        "Bâti présent",
+        [
+          ["Groupes de bâtiments", String(buildingSummary.count)],
+          [
+            "Emprise bâtie estimée",
+            `${buildingSummary.emprise.toLocaleString("fr-FR")} m²`,
+          ],
+          [
+            "Taux d’emprise",
+            buildingSummary.tauxEmprise == null
+              ? "Non renseigné"
+              : `${buildingSummary.tauxEmprise.toLocaleString("fr-FR")} %`,
+          ],
+          ["Usage principal", buildingSummary.usagePrincipal || "Non renseigné"],
+          [
+            "Construction la plus ancienne",
+            buildingSummary.anneeAncienne
+              ? String(buildingSummary.anneeAncienne)
+              : "Non renseignée",
+          ],
+          [
+            "Hauteur maximale estimée",
+            buildingSummary.hauteurMax == null
+              ? "Non renseignée"
+              : `${buildingSummary.hauteurMax} m`,
+          ],
+          [
+            "Logements recensés",
+            buildingSummary.logements > 0
+              ? String(buildingSummary.logements)
+              : "Non renseigné",
+          ],
+          ["DPE disponible", buildingSummary.dpe || "Non disponible"],
+        ],
+        [227, 179, 65],
+      );
     if (analysis.servitudes.length)
       section(
         "Détail des servitudes",
@@ -3064,6 +3145,65 @@ export default function DecisionTerritorialePage() {
                     </p>
                   ) : null}
                 </Section>
+                {(() => {
+                  const summary = parcelBuildingSummary(
+                    analysis.buildings,
+                    p.contenance,
+                  );
+                  return summary ? (
+                    <Section
+                      title="Bâti présent"
+                      state={`${summary.count} groupe${summary.count > 1 ? "s" : ""} de bâtiments`}
+                    >
+                      <div className="decision-kpis">
+                        <Kpi
+                          label="Emprise bâtie estimée"
+                          value={`${summary.emprise.toLocaleString("fr-FR")} m²`}
+                        />
+                        <Kpi
+                          label="Taux d’emprise"
+                          value={
+                            summary.tauxEmprise == null
+                              ? "Non renseigné"
+                              : `${summary.tauxEmprise.toLocaleString("fr-FR")} %`
+                          }
+                        />
+                        <Kpi
+                          label="Usage principal"
+                          value={summary.usagePrincipal || "Non renseigné"}
+                        />
+                        <Kpi
+                          label="Construction la plus ancienne"
+                          value={
+                            summary.anneeAncienne
+                              ? String(summary.anneeAncienne)
+                              : "Non renseignée"
+                          }
+                        />
+                        <Kpi
+                          label="Hauteur maximale estimée"
+                          value={
+                            summary.hauteurMax == null
+                              ? "Non renseignée"
+                              : `${summary.hauteurMax} m`
+                          }
+                        />
+                        <Kpi
+                          label="Logements recensés"
+                          value={
+                            summary.logements > 0
+                              ? String(summary.logements)
+                              : "Non renseigné"
+                          }
+                        />
+                        <Kpi
+                          label="DPE disponible"
+                          value={summary.dpe || "Non disponible"}
+                        />
+                      </div>
+                    </Section>
+                  ) : null;
+                })()}
                 {analysis.selectedBuilding && (
                   <BuildingDetails analysis={analysis} />
                 )}
