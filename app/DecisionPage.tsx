@@ -904,6 +904,10 @@ export default function DecisionTerritorialePage() {
   const basePath = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
   useEffect(() => {
+    (window as any).decisionPrintApp = { analysis, basePath };
+  }, [analysis, basePath]);
+
+  useEffect(() => {
     jsonOr<any>(`${basePath}/data/decision/services-95.json`, null)
       .then(
         async (data) =>
@@ -2115,6 +2119,9 @@ export default function DecisionTerritorialePage() {
         padding: [8, 8],
         animate: false,
       });
+  }
+  function printMapView() {
+    window.open(`${basePath}/print.html`, "_blank");
   }
   async function openDecisionPdf() {
     if (!analysis) return;
@@ -3860,6 +3867,12 @@ export default function DecisionTerritorialePage() {
                 <a href={georisquesPdf} target="_blank" rel="noreferrer">
                   Rapport Géorisques ↗
                 </a>
+                <button
+                  onClick={printMapView}
+                  style={{ gridColumn: "1 / -1" }}
+                >
+                  Imprimer la carte (A3) ↗
+                </button>
               </div>
             </>
           )}
