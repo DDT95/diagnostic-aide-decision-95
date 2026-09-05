@@ -904,7 +904,44 @@ export default function DecisionTerritorialePage() {
   const basePath = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
 
   useEffect(() => {
-    (window as any).decisionPrintApp = { analysis, basePath };
+    let printSummary: any = null;
+    if (analysis) {
+      const p = analysis.parcel?.properties || {};
+      const zone = analysis.zones[0]?.properties;
+      const building = parcelBuildingSummary(analysis.buildings, p.contenance);
+      printSummary = {
+        parcelle: `${first(p, ["section"], "")} ${first(p, ["numero"], "")}`.trim(),
+        surface: p.contenance ? `${p.contenance} m²` : "Non renseignée",
+        zonePlu: String(
+          first(zone, ["libelle", "typezone", "libelle_zone"], "Non renseignée"),
+        ),
+        zoneDescription: String(
+          first(zone, ["libelong", "libelle"], ""),
+        ),
+        servitudes: analysis.servitudes.length,
+        mos: analysis.mos?.mos2025 ? mosLabel(analysis.mos.mos2025) : null,
+        batiments: building
+          ? {
+              count: building.count,
+              emprise: `${building.emprise.toLocaleString("fr-FR")} m²`,
+              tauxEmprise:
+                building.tauxEmprise == null
+                  ? "Non renseigné"
+                  : `${building.tauxEmprise.toLocaleString("fr-FR")} %`,
+              usage: building.usagePrincipal || "Non renseigné",
+              annee: building.anneeAncienne
+                ? String(building.anneeAncienne)
+                : "Non renseignée",
+              hauteur:
+                building.hauteurMax == null
+                  ? "Non renseignée"
+                  : `${building.hauteurMax} m`,
+              dpe: building.dpe || "Non disponible",
+            }
+          : null,
+      };
+    }
+    (window as any).decisionPrintApp = { analysis, printSummary, basePath };
   }, [analysis, basePath]);
 
   useEffect(() => {

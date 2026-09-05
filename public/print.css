@@ -22,7 +22,8 @@ html,body{margin:0;background:#8b93a1;font-family:Marianne,Arial,sans-serif}
 .print-header h1{margin:0;font-size:13pt;font-weight:700;color:#111;line-height:1.2}
 .print-header p{margin:.8mm 0 0;font-size:9pt;font-style:italic;color:#444}
 
-.print-map{flex:1;min-height:0;margin-top:3mm;position:relative}
+.print-body{flex:1;min-height:0;margin-top:3mm;display:flex;gap:4mm}
+.print-map{flex:1;min-height:0;position:relative;border-radius:2mm;overflow:hidden}
 #printMapCanvas{width:100%;height:100%;background:#fff}
 
 .print-legend{
@@ -37,6 +38,15 @@ html,body{margin:0;background:#8b93a1;font-family:Marianne,Arial,sans-serif}
 .legend-block i{width:3.5mm;height:3.5mm;border-radius:.5mm;display:inline-block;flex:none;border:.15mm solid rgba(0,0,0,.25)}
 .legend-block i.dot{border-radius:50%}
 .legend-empty{color:#666;font-style:italic}
+
+.print-side{width:76mm;flex:none;display:flex;flex-direction:column;gap:3.5mm;overflow:hidden}
+.side-card{border-radius:3mm;padding:4mm 4.5mm;background:var(--card-bg,#eef1ff)}
+.side-card h2{margin:0 0 3mm;font-size:8.5pt;font-weight:700;color:var(--card-accent,#000091);text-transform:uppercase;letter-spacing:.03em}
+.side-row{display:flex;justify-content:space-between;align-items:baseline;gap:2mm;padding:1.6mm 0;border-bottom:.2mm solid rgba(17,17,17,.08)}
+.side-row:last-child{border-bottom:0}
+.side-row span{font-size:6.7pt;color:#555;flex:none}
+.side-row strong{font-size:7.6pt;color:#111;text-align:right}
+.side-empty{font-size:7.5pt;color:#666;font-style:italic}
 
 .print-footer{position:relative;display:flex;align-items:center;justify-content:space-between;padding-top:2mm;border-top:.25mm solid #ccc}
 .print-sources{font-size:7pt;line-height:1.45;color:#333}

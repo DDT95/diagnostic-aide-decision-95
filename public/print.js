@@ -11,6 +11,7 @@
   }
 
   const { lon, lat, address, commune, codeInsee, isochrones, parcel } = analysis;
+  const printSummary = app.printSummary || null;
 
   // html2canvas ne capture pas fiablement les éléments positionnés par
   // transform CSS (translate3d) : Leaflet doit utiliser un positionnement
@@ -33,7 +34,6 @@
 
   const legendItems = [
     ["#e1000f", "Point analysé", "dot"],
-    ...(isochrones && isochrones["15"] ? [["#00a7b5", "Accessibilité piétonne · 15 min", "box"]] : []),
     ...(parcel ? [["#000091", "Parcelle cadastrale", "box"]] : []),
   ];
   document.getElementById("printLegend").innerHTML =
@@ -42,6 +42,45 @@
       .map(([color, label, shape]) => `<span><i class="${shape === "dot" ? "dot" : ""}" style="background:${color}"></i>${label}</span>`)
       .join("") +
     "</div>";
+
+  const sideCard = (accent, bg, title, rows) =>
+    `<div class="side-card" style="--card-accent:${accent};--card-bg:${bg}">
+      <h2>${title}</h2>
+      ${
+        rows.length
+          ? rows
+              .map(
+                ([label, value]) =>
+                  `<div class="side-row"><span>${label}</span><strong>${value}</strong></div>`,
+              )
+              .join("")
+          : '<p class="side-empty">Données non disponibles</p>'
+      }
+    </div>`;
+  const sideHtml = printSummary
+    ? sideCard("#000091", "#eef1ff", "Parcelle et urbanisme", [
+        ["Parcelle", printSummary.parcelle || "Non renseignée"],
+        ["Surface cadastrale", printSummary.surface],
+        ["Zone PLU", printSummary.zonePlu],
+        ...(printSummary.zoneDescription
+          ? [["Description", printSummary.zoneDescription]]
+          : []),
+        ["Servitudes intersectées", String(printSummary.servitudes)],
+        ...(printSummary.mos ? [["Occupation du sol", printSummary.mos]] : []),
+      ]) +
+      (printSummary.batiments
+        ? sideCard("#8a5d00", "#fdf3e0", "Bâti présent", [
+            ["Groupes de bâtiments", String(printSummary.batiments.count)],
+            ["Emprise bâtie estimée", printSummary.batiments.emprise],
+            ["Taux d’emprise", printSummary.batiments.tauxEmprise],
+            ["Usage principal", printSummary.batiments.usage],
+            ["Construction la plus ancienne", printSummary.batiments.annee],
+            ["Hauteur maximale estimée", printSummary.batiments.hauteur],
+            ["DPE disponible", printSummary.batiments.dpe],
+          ])
+        : sideCard("#8a5d00", "#fdf3e0", "Bâti présent", []))
+    : sideCard("#000091", "#eef1ff", "Parcelle et urbanisme", []);
+  document.getElementById("printSide").innerHTML = sideHtml;
 
   const map = L.map("printMapCanvas", {
     zoomControl: false,
@@ -96,9 +135,9 @@
   // défaut d'isochrone disponible, un rayon fixe raisonnable est utilisé.
   let bounds;
   if (isochrones && isochrones["15"]) {
-    bounds = L.geoJSON(isochrones["15"]).getBounds().pad(0.35);
+    bounds = L.geoJSON(isochrones["15"]).getBounds().pad(0.15);
   } else {
-    bounds = L.latLng(lat, lon).toBounds(2600);
+    bounds = L.latLng(lat, lon).toBounds(1800);
   }
   // Vue initiale synchrone AVANT d'ajouter la moindre couche vectorielle :
   // sans vue déjà établie, le renderer canvas plante en essayant de clipper
@@ -111,13 +150,6 @@
     L.geoJSON(parcel, {
       interactive: false,
       style: { color: "#000091", weight: 2, fillColor: "#000091", fillOpacity: 0.06 },
-    }).addTo(map);
-  }
-
-  if (isochrones && isochrones["15"]) {
-    L.geoJSON(isochrones["15"], {
-      interactive: false,
-      style: { color: "#00a7b5", weight: 2, dashArray: "6 4", fillColor: "#00a7b5", fillOpacity: 0.05 },
     }).addTo(map);
   }
 
