@@ -214,12 +214,6 @@ const SOURCE_LINKS = [
 
 const MAP_LAYERS = [
   ["cadastre", "Cadastre", "Urbanisme et foncier", "#000091"],
-  [
-    "historicAerial",
-    "Photo aérienne 1950-1965",
-    "Urbanisme et foncier",
-    "#647381",
-  ],
   ["buildings", "Bâtiments · RNB / BDNB", "Urbanisme et foncier", "#e77735"],
   ["mos", "MOS 2025 · occupation du sol", "Urbanisme et foncier", "#009081"],
   ["plu", "PLU / PLUi", "Urbanisme et foncier", "#3153a4"],
@@ -271,7 +265,7 @@ const MAP_LAYERS = [
 const LAYER_GROUPS = [
   [
     "Urbanisme et foncier",
-    ["cadastre", "historicAerial", "buildings", "mos", "plu", "servitudes"],
+    ["cadastre", "buildings", "mos", "plu", "servitudes"],
   ],
   ["Risques et nuisances", ["peb", "noiseRoad", "noiseRail"]],
   [
@@ -1477,20 +1471,6 @@ export default function DecisionTerritorialePage() {
           attribution: "© IGN · DGFiP",
         },
       ).addTo(map);
-      mapLayersRef.current[id] = layer;
-      return;
-    }
-    if (id === "historicAerial") {
-      const layer = L.tileLayer
-        .wms("https://data.geopf.fr/wms-r/wms", {
-          layers: "ORTHOIMAGERY.ORTHOPHOTOS.1950-1965",
-          styles: "",
-          format: "image/png",
-          transparent: false,
-          opacity: 1,
-          attribution: "© IGN · Remonter le temps",
-        })
-        .addTo(map);
       mapLayersRef.current[id] = layer;
       return;
     }
