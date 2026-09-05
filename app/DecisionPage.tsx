@@ -274,11 +274,33 @@ const LAYER_GROUPS = [
   ],
   ["Services", ["doctors", "pharmacies", "hospitals", "franceServices"]],
 ] as const;
+const SVG_ICON_WRAP = (path: string) =>
+  `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="${path}"/></svg>`;
+const SERVICE_ICONS: Record<string, string> = {
+  education: SVG_ICON_WRAP(
+    "M12 3 1 9l11 6 9-4.9V17h2V9L12 3Zm0 8.8L4.8 9 12 5.2 19.2 9 12 11.8ZM5 13.2V17c0 1.9 3.4 4 7 4s7-2.1 7-4v-3.8l-7 3.8-7-3.8Z",
+  ),
+  mobilite: SVG_ICON_WRAP(
+    "M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11h1a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1a2 2 0 1 1-4 0H8a2 2 0 1 1-4 0H3a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h2Zm2.1-4L6 11h12l-1.1-4H7.1ZM6 15.5A1.5 1.5 0 1 0 6 18.5 1.5 1.5 0 0 0 6 15.5Zm12 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z",
+  ),
+  culture: SVG_ICON_WRAP(
+    "M2 10h2v4H2v-4Zm3-2h2v8H5V8Zm3 1h8v6H8V9Zm9-1h2v8h-2V8Zm3 2h2v4h-2v-4Z",
+  ),
+  administration: SVG_ICON_WRAP(
+    "M9 4a2 2 0 0 0-2 2v1H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3V6a2 2 0 0 0-2-2H9Zm0 3V6h6v1H9ZM2 12h20v2H2v-2Z",
+  ),
+  building: SVG_ICON_WRAP(
+    "M12 2 2 8h20L12 2Zm-7 8v9h2v-9H5Zm4 0v9h2v-9H9Zm4 0v9h2v-9h-2Zm4 0v9h2v-9h-2ZM3 20h18v2H3v-2Z",
+  ),
+  heart: SVG_ICON_WRAP(
+    "M12 21s-7.5-4.9-10-9.3C.6 8.6 2 5 5.4 5c2 0 3.4 1.1 4.1 2.3C10.2 6.1 11.6 5 13.6 5 17 5 18.4 8.6 17 11.7 15.5 16.1 12 21 12 21Z",
+  ),
+};
 const SERVICE_CATEGORIES = [
-  ["education", "Éducation", "É", "#e1000f"],
-  ["mobilite", "Mobilité", "T", "#000091"],
-  ["administration", "Services publics", "SP", "#18753c"],
-  ["culture", "Équipements sportifs", "S", "#a558a0"],
+  ["education", "Éducation", SERVICE_ICONS.education, "#e1000f"],
+  ["mobilite", "Mobilité", SERVICE_ICONS.mobilite, "#000091"],
+  ["administration", "Services publics", SERVICE_ICONS.administration, "#18753c"],
+  ["culture", "Équipements sportifs", SERVICE_ICONS.culture, "#a558a0"],
 ] as const;
 const TRANSIT_STOP_TYPES = new Set([
   "platform",
@@ -287,23 +309,23 @@ const TRANSIT_STOP_TYPES = new Set([
   "bus_station",
   "station",
 ]);
-const ADMINISTRATION_GLYPHS: Record<string, string> = {
-  mairie: "M",
-  townhall: "M",
-  government: "M",
-  epci: "M",
-  ccas: "CC",
-  social_centre: "CS",
-  pmi: "PM",
-  cij: "CJ",
-  france_travail: "FT",
-  tresorerie: "TR",
-  point_justice: "PJ",
-  mjd: "PJ",
+const ADMINISTRATION_ICONS: Record<string, string> = {
+  mairie: SERVICE_ICONS.building,
+  townhall: SERVICE_ICONS.building,
+  government: SERVICE_ICONS.building,
+  epci: SERVICE_ICONS.building,
+  ccas: SERVICE_ICONS.heart,
+  social_centre: SERVICE_ICONS.heart,
+  pmi: SERVICE_ICONS.heart,
+  cij: SERVICE_ICONS.administration,
+  france_travail: SERVICE_ICONS.administration,
+  tresorerie: SERVICE_ICONS.administration,
+  point_justice: SERVICE_ICONS.administration,
+  mjd: SERVICE_ICONS.administration,
 };
 const serviceGlyph = (service: Service, fallback: string) =>
   service.category === "administration"
-    ? ADMINISTRATION_GLYPHS[String(service.type)] || fallback
+    ? ADMINISTRATION_ICONS[String(service.type)] || fallback
     : fallback;
 const serviceBucket = (service: Service) =>
   service.category === "france_services" ? "administration" : service.category;
@@ -2692,7 +2714,9 @@ export default function DecisionTerritorialePage() {
                             checked={activeServiceCategories[category[0]]}
                             onChange={() => toggleServiceCategory(category[0])}
                           />
-                          <i>{category[2]}</i>
+                          <i
+                            dangerouslySetInnerHTML={{ __html: category[2] }}
+                          />
                           <span>{category[1]}</span>
                         </label>
                       ))}
