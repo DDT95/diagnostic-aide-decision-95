@@ -276,12 +276,40 @@ const LAYER_GROUPS = [
 ] as const;
 const SERVICE_CATEGORIES = [
   ["education", "Éducation", "É", "#e1000f"],
-  ["mobilite", "Transports", "T", "#000091"],
+  ["mobilite", "Mobilité", "T", "#000091"],
   ["administration", "Services publics", "SP", "#18753c"],
   ["culture", "Équipements sportifs", "S", "#a558a0"],
 ] as const;
+const TRANSIT_STOP_TYPES = new Set([
+  "platform",
+  "stop_position",
+  "stop_area",
+  "bus_station",
+  "station",
+]);
+const ADMINISTRATION_GLYPHS: Record<string, string> = {
+  mairie: "M",
+  townhall: "M",
+  government: "M",
+  epci: "M",
+  ccas: "CC",
+  social_centre: "CS",
+  pmi: "PM",
+  cij: "CJ",
+  france_travail: "FT",
+  tresorerie: "TR",
+  point_justice: "PJ",
+  mjd: "PJ",
+};
+const serviceGlyph = (service: Service, fallback: string) =>
+  service.category === "administration"
+    ? ADMINISTRATION_GLYPHS[String(service.type)] || fallback
+    : fallback;
 const serviceBucket = (service: Service) =>
   service.category === "france_services" ? "administration" : service.category;
+const isTransitStopDuplicate = (service: Service) =>
+  serviceBucket(service) === "mobilite" &&
+  TRANSIT_STOP_TYPES.has(String(service.type));
 const isPublicService = (service: Service) =>
   !(
     service.source === "OpenStreetMap" &&
@@ -1349,6 +1377,7 @@ export default function DecisionTerritorialePage() {
       visible = servicesRef.current.filter(
         (service) =>
           categories[serviceBucket(service)] &&
+          !isTransitStopDuplicate(service) &&
           bounds.contains([service.lat, service.lon]),
       );
     const renderer = L.canvas({ padding: 0.25 }),
@@ -1358,11 +1387,12 @@ export default function DecisionTerritorialePage() {
         glyph: "•",
         color: "#68798a",
       };
+      const glyph = serviceGlyph(service, item.glyph);
       return detailed
         ? L.marker([service.lat, service.lon], {
             icon: L.divIcon({
               className: "decision-service-marker",
-              html: `<span style="--marker-color:${item.color}">${item.glyph}</span>`,
+              html: `<span style="--marker-color:${item.color}">${glyph}</span>`,
               iconSize: [25, 25],
               iconAnchor: [12, 12],
             }),
