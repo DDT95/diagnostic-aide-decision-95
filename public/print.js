@@ -12,6 +12,11 @@
 
   const { lon, lat, address, commune, codeInsee, isochrones, parcel } = analysis;
 
+  // html2canvas ne capture pas fiablement les éléments positionnés par
+  // transform CSS (translate3d) : Leaflet doit utiliser un positionnement
+  // top/left classique pour que les tuiles et couches apparaissent au clichés.
+  L.Browser.any3d = false;
+
   document.getElementById("printTitle").textContent =
     address && address !== "Point sélectionné"
       ? `${address}`
@@ -86,6 +91,22 @@
   });
   new NeutralTileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
+  // Emprise : le rayon 15 min à pied, avec une marge pour voir un peu au-delà
+  // et donner une vue d'ensemble de la zone et de son environnement. À
+  // défaut d'isochrone disponible, un rayon fixe raisonnable est utilisé.
+  let bounds;
+  if (isochrones && isochrones["15"]) {
+    bounds = L.geoJSON(isochrones["15"]).getBounds().pad(0.35);
+  } else {
+    bounds = L.latLng(lat, lon).toBounds(2600);
+  }
+  // Vue initiale synchrone AVANT d'ajouter la moindre couche vectorielle :
+  // sans vue déjà établie, le renderer canvas plante en essayant de clipper
+  // des points sans limites de pixels valides (whenReady() ne se
+  // déclencherait de toute façon jamais sans cet appel préalable).
+  map.invalidateSize();
+  map.fitBounds(bounds, { padding: [4, 4] });
+
   if (parcel && parcel.geometry) {
     L.geoJSON(parcel, {
       interactive: false,
@@ -108,20 +129,6 @@
     fillOpacity: 1,
     interactive: false,
   }).addTo(map);
-
-  // Emprise : le rayon 15 min à pied, avec une marge pour voir un peu au-delà
-  // et donner une vue d'ensemble de la zone et de son environnement. À
-  // défaut d'isochrone disponible, un rayon fixe raisonnable est utilisé.
-  let bounds;
-  if (isochrones && isochrones["15"]) {
-    bounds = L.geoJSON(isochrones["15"]).getBounds().pad(0.35);
-  } else {
-    bounds = L.latLng(lat, lon).toBounds(2600);
-  }
-  // Vue initiale synchrone : sans elle, whenReady() ne se déclenche jamais
-  // (Leaflet n'a pas de vue tant que setView/fitBounds n'a pas été appelé).
-  map.invalidateSize();
-  map.fitBounds(bounds, { padding: [4, 4] });
 
   function niceScaleNumber(n) {
     const pow10 = Math.pow(10, String(Math.floor(n)).length - 1);
@@ -174,8 +181,8 @@
         console.error(err);
         statusEl.textContent = "La génération du PDF a échoué. Réessayez depuis la carte.";
       });
-    }, 700);
+    }, 1400);
   }
 
-  map.whenReady(() => setTimeout(finalizeMap, 600));
+  map.whenReady(() => setTimeout(finalizeMap, 900));
 })();
