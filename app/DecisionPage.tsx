@@ -30,6 +30,7 @@ type Analysis = {
   commune: string;
   codeInsee: string;
   parcel?: Feature;
+  foncierPublic?: [string, string, string] | null;
   zones: Feature[];
   servitudes: Feature[];
   risks: any[];
@@ -353,6 +354,62 @@ const percent = (value: unknown) =>
   value == null || String(value).trim() === ""
     ? "Non renseigné"
     : `${String(value).replace(/\s*%\s*$/, "")} %`;
+const SUP_LABELS: Record<string, string> = {
+  A1: "Protection des bois et forêts",
+  A2: "Canalisations souterraines d’irrigation",
+  A3: "Aménagement des eaux et canaux d’irrigation",
+  A4: "Passage le long des cours d’eau",
+  A5: "Canalisations publiques d’eau et d’assainissement",
+  A6: "Écoulement des eaux nuisibles",
+  A7: "Forêts de protection",
+  A8: "Protection des plantations",
+  A9: "Zone agricole protégée",
+  A10: "Protection des terres agricoles",
+  AC1: "Protection des monuments historiques",
+  AC2: "Sites classés ou inscrits",
+  AC3: "Réserves naturelles",
+  AC4: "Patrimoine architectural et urbain",
+  AS1: "Protection des eaux potables et minérales",
+  AS2: "Protection des établissements conchylicoles",
+  EL3: "Halage et marchepied",
+  EL5: "Visibilité sur les voies publiques",
+  EL7: "Alignement des voies publiques",
+  EL11: "Accès aux routes express et déviations",
+  I1: "Canalisations d’hydrocarbures",
+  I3: "Canalisations de gaz",
+  I4: "Transport et distribution d’électricité",
+  I5: "Canalisations de produits chimiques",
+  I6: "Mines et carrières",
+  I9: "Réseaux de chaleur et de froid",
+  INT1: "Voisinage des cimetières",
+  JS1: "Protection des équipements sportifs",
+  PM1: "Plan de prévention des risques naturels, miniers ou technologiques",
+  PM2: "Installations classées et risques technologiques",
+  PM3: "Plan de prévention des risques technologiques",
+  PT1: "Protection des centres radioélectriques",
+  PT2: "Protection contre les obstacles radioélectriques",
+  PT3: "Réseaux de télécommunication",
+  T1: "Voies ferrées",
+  T2: "Survol par téléphérique",
+  T3: "Tréfonds ferroviaires",
+  T4: "Balisage aéronautique",
+  T5: "Dégagement aéronautique",
+  T6: "Installations de navigation aérienne",
+  T7: "Servitudes aéronautiques extérieures",
+};
+const supLabel = (code: unknown) => {
+  const key = String(code || "").toUpperCase();
+  return SUP_LABELS[key] || (key ? `Servitude d’utilité publique ${key}` : "Servitude GPU");
+};
+const FONCIER_PUBLIC_COLORS: Record<string, string> = {
+  "1": "#e1000f",
+  "2": "#6f4c9b",
+  "3": "#000091",
+  "4": "#18753c",
+  "5": "#0098d8",
+  "6": "#e3b341",
+  "9": "#7b61a8",
+};
 const PLU_ZONE_COLORS: Record<string, { stroke: string; fill: string }> = {
   U: { stroke: "#c9184a", fill: "#ff6b8a" },
   AU: { stroke: "#d9750a", fill: "#ffb454" },
@@ -372,18 +429,112 @@ const pluZoneStyle = (feature?: Feature) => {
     fillOpacity: 0.32,
   };
 };
-const MOS_GRAND_POSTE_COLORS: Record<string, string> = {
-  "1": "#e8871e",
-  "2": "#8e44ad",
-  "3": "#7f8c8d",
-  "4": "#8d6e63",
-  "5": "#d4c04a",
-  "6": "#1b7837",
-  "7": "#66bd63",
-  "8": "#3182bd",
+const MOS_LABELS: Record<number, string> = {
+  1: "Bois ou forêts",
+  2: "Coupes ou clairières en forêts",
+  3: "Peupleraies",
+  4: "Espaces ouverts à végétation arborée ou herbacée",
+  5: "Berges",
+  6: "Terres labourées",
+  7: "Prairies",
+  8: "Vergers, pépinières",
+  9: "Maraîchage, horticulture",
+  10: "Cultures intensives sous serres",
+  11: "Eau fermée",
+  12: "Cours d’eau",
+  13: "Parcs ou jardins publics",
+  14: "Autres espaces verts publics",
+  15: "Jardins familiaux",
+  16: "Jardins de l’habitat",
+  17: "Terrains de sport en plein air",
+  18: "Tennis découverts",
+  19: "Baignade",
+  20: "Golfs",
+  21: "Hippodromes",
+  22: "Camping, caravaning",
+  23: "Parcs liés aux activités de loisirs",
+  24: "Esplanades et places",
+  25: "Cimetières",
+  26: "Surfaces engazonnées avec ou sans arbustes",
+  27: "Terrains vacants",
+  28: "Habitat pavillonnaire",
+  29: "Ensemble d’habitat pavillonnaire",
+  30: "Habitat rural",
+  31: "Habitat continu bas",
+  32: "Habitat collectif continu haut",
+  33: "Habitat collectif discontinu",
+  34: "Prisons",
+  35: "Habitat autre",
+  36: "Activités en tissu urbain mixte",
+  37: "Grandes emprises industrielles",
+  38: "Zones d’activités économiques",
+  39: "Entreposage à l’air libre",
+  40: "Entrepôts logistiques",
+  41: "Stockage de données",
+  42: "Grandes surfaces commerciales",
+  43: "Autres commerces",
+  44: "Stations-services",
+  45: "Bureaux",
+  46: "Production d’eau",
+  47: "Assainissement",
+  48: "Électricité",
+  49: "Gaz",
+  50: "Pétrole",
+  51: "Chaleur",
+  52: "Extraction de matériaux",
+  53: "Tri et valorisation des déchets",
+  54: "Stockage de déchets",
+  55: "Installations sportives couvertes",
+  56: "Centres équestres",
+  57: "Piscines couvertes",
+  58: "Piscines de plein air",
+  59: "Circuits sportifs",
+  60: "Enseignement du premier degré",
+  61: "Enseignement secondaire",
+  62: "Enseignement supérieur",
+  63: "Centre de formation professionnelle",
+  64: "Hôpitaux, cliniques",
+  65: "Autres équipements de santé",
+  66: "Grands centres de congrès et d’exposition",
+  67: "Équipements culturels et de loisirs",
+  68: "Sièges de grandes administrations",
+  69: "Équipements de sécurité civile",
+  70: "Équipements à accès public limité",
+  71: "Lieux de culte",
+  72: "Autres équipements de proximité",
+  73: "Emprise ferrée",
+  74: "Voies routières",
+  75: "Parkings de surface",
+  76: "Parkings en étages",
+  77: "Gares routières, dépôts de bus",
+  78: "Installations aéroportuaires",
+  79: "Chantiers",
 };
-const mosColor = (code: unknown) =>
-  MOS_GRAND_POSTE_COLORS[String(code || "").trim()[0]] || "#b9c2cc";
+const mosLabel = (code: unknown) => {
+  const n = Number(code);
+  return MOS_LABELS[n] || (code ? `Poste ${code}` : "Non renseignée");
+};
+const mosColor = (code: unknown) => {
+  const n = Number(code);
+  if (!Number.isFinite(n)) return "#b9c2cc";
+  return n <= 5
+    ? "#18753c"
+    : n <= 10
+      ? "#e3b341"
+      : n <= 12
+        ? "#0098d8"
+        : n <= 27
+          ? "#62b467"
+          : n <= 35
+            ? "#e07a9a"
+            : n <= 54
+              ? "#a05a9c"
+              : n <= 72
+                ? "#5576b9"
+                : n <= 78
+                  ? "#737b87"
+                  : "#e1000f";
+};
 const rnbStatus = (value: unknown) =>
   ({
     constructed: "Construit",
@@ -652,6 +803,7 @@ export default function DecisionTerritorialePage() {
     servicesRef = useRef<Service[]>([]),
     busNetworkRef = useRef<any>({ stops: [], routes: [] }),
     studyProfilesRef = useRef<Record<string, any>>({}),
+    foncierPublicRef = useRef<Record<string, [string, string, string]>>({}),
     activeLayersRef = useRef<Record<string, boolean>>({}),
     serviceCategoriesRef = useRef<Record<string, boolean>>({}),
     sourceDialog = useRef<HTMLDialogElement>(null),
@@ -718,6 +870,14 @@ export default function DecisionTerritorialePage() {
       studyProfilesRef.current = data.profiles || {};
     });
   }, [basePath]);
+  useEffect(() => {
+    jsonOr<any>(
+      "https://ddt95.github.io/urbanisme95/data/foncier-public-95.json",
+      {},
+    ).then((data) => {
+      foncierPublicRef.current = data || {};
+    });
+  }, []);
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return;
     let cancelled = false;
@@ -1140,6 +1300,7 @@ export default function DecisionTerritorialePage() {
       commune: address.city || spatialName,
       codeInsee: address.citycode || spatialCode,
       parcel: selectedParcel,
+      foncierPublic: foncierPublicRef.current[parcelId] || null,
       zones: zones.features || [],
       servitudes: [
         ...(supS.features || []),
@@ -2074,20 +2235,29 @@ export default function DecisionTerritorialePage() {
         ),
       ],
       ["Servitudes intersectées", String(analysis.servitudes.length)],
+      ["MOS 2025", mosLabel(analysis.mos?.mos2025)],
       [
-        "MOS 2025",
-        analysis.mos?.mos2025
-          ? `Poste ${analysis.mos.mos2025}`
-          : "Non renseigné",
+        "Évolution depuis 2021",
+        analysis.mos?.mos2021 == null || analysis.mos?.mos2025 == null
+          ? "Non renseignée"
+          : String(analysis.mos.mos2021) === String(analysis.mos.mos2025)
+            ? "Usage stable depuis 2021"
+            : `${mosLabel(analysis.mos.mos2021)} → ${mosLabel(analysis.mos.mos2025)}`,
       ],
       ["Groupes de bâtiments BDNB", String(analysis.buildings.length)],
+      ...(analysis.foncierPublic
+        ? ([
+            ["Propriété et foncier public", analysis.foncierPublic[1]],
+            ["Propriétaire identifié", analysis.foncierPublic[2]],
+          ] as [string, string][])
+        : []),
     ]);
     if (analysis.servitudes.length)
       section(
         "Détail des servitudes",
         analysis.servitudes.map((item, i) => [
           `Servitude ${i + 1}`,
-          `${first(item.properties, ["libelle", "nom", "typeass", "categorie"], "Servitude GPU")} · ${first(item.properties, ["idass", "idsup", "nomfic"], "identifiant non renseigné")}`,
+          `${first(item.properties, ["libelle", "nom", "typeass", "categorie"], "Servitude GPU")} · ${supLabel(item.properties?.suptype)} · ${first(item.properties, ["idass", "idsup", "nomfic"], "identifiant non renseigné")}`,
         ]),
       );
     if (analysis.selectedBuilding) {
@@ -2829,7 +2999,20 @@ export default function DecisionTerritorialePage() {
                     {analysis.mos?.mos2025 && (
                       <Kpi
                         label="Occupation du sol · MOS 2025"
-                        value={`Poste ${analysis.mos.mos2025}`}
+                        value={mosLabel(analysis.mos.mos2025)}
+                      />
+                    )}
+                    {analysis.mos?.mos2025 && (
+                      <Kpi
+                        label="Évolution depuis 2021"
+                        value={
+                          analysis.mos.mos2021 == null
+                            ? "Non renseignée"
+                            : String(analysis.mos.mos2021) ===
+                                String(analysis.mos.mos2025)
+                              ? "Usage stable depuis 2021"
+                              : `${mosLabel(analysis.mos.mos2021)} → ${mosLabel(analysis.mos.mos2025)}`
+                        }
                       />
                     )}
                     <Kpi
@@ -2837,6 +3020,24 @@ export default function DecisionTerritorialePage() {
                       value={String(analysis.buildings.length)}
                     />
                   </div>
+                  {analysis.foncierPublic && (
+                    <div
+                      className="decision-kpis"
+                      style={{ marginTop: 8 }}
+                    >
+                      <Kpi
+                        label="Propriété et foncier public"
+                        value={
+                          analysis.foncierPublic[1].charAt(0).toUpperCase() +
+                          analysis.foncierPublic[1].slice(1)
+                        }
+                      />
+                      <Kpi
+                        label="Propriétaire identifié"
+                        value={analysis.foncierPublic[2]}
+                      />
+                    </div>
+                  )}
                   <div className="decision-links">
                     <a
                       href={`https://www.geoportail-urbanisme.gouv.fr/map/#tile=1&lon=${analysis.lon}&lat=${analysis.lat}&zoom=17`}
@@ -2865,6 +3066,28 @@ export default function DecisionTerritorialePage() {
                 </Section>
                 {analysis.selectedBuilding && (
                   <BuildingDetails analysis={analysis} />
+                )}
+                {analysis.servitudes.length > 0 && (
+                  <Section
+                    title="Servitudes concernant la parcelle"
+                    state={`${analysis.servitudes.length} assiette${analysis.servitudes.length > 1 ? "s" : ""} intersectée${analysis.servitudes.length > 1 ? "s" : ""}`}
+                  >
+                    <div className="decision-list">
+                      {analysis.servitudes.map((item: Feature, i: number) => (
+                        <Row
+                          key={i}
+                          label={String(
+                            first(
+                              item.properties,
+                              ["typeass", "libelle", "nom"],
+                              "Servitude GPU",
+                            ),
+                          )}
+                          value={supLabel(item.properties?.suptype)}
+                        />
+                      ))}
+                    </div>
+                  </Section>
                 )}
                 {analysis.risks.length > 0 ? (
                   <Section
