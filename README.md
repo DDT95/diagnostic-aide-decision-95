@@ -1,4 +1,4 @@
-# Diagnostic d'aide à la décision — Val-d'Oise
+# Diagnostic parcellaire — Val-d'Oise
 
 Outil d'analyse territoriale au point pour la DDT du Val-d'Oise (95) : urbanisme, risques, bâti, environnement, logement et accessibilité à 15 minutes.
 

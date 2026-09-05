@@ -2959,7 +2959,7 @@ export default function DecisionTerritorialePage() {
         </a>
         <div className="decision-header-copy">
           <span>INSTRUCTION · CONNAISSANCE TERRITORIALE</span>
-          <h1>Diagnostic d’aide à la décision</h1>
+          <h1>Diagnostic parcellaire</h1>
           <p>Cadastre · urbanisme · risques · environnement · accessibilité</p>
         </div>
         <div className="decision-livebox">
