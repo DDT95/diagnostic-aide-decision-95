@@ -1844,6 +1844,13 @@ export default function DecisionTerritorialePage() {
       navy: [number, number, number] = [0, 0, 145],
       deep: [number, number, number] = [7, 0, 71],
       muted: [number, number, number] = [91, 103, 123];
+    const accentTint = (
+      color: [number, number, number],
+      ratio: number,
+    ): [number, number, number] =>
+      color.map((channel) =>
+        Math.round(255 - (255 - channel) * ratio),
+      ) as [number, number, number];
     const logo = await fetch(`${basePath}/prefet-val-doise-logo.png`)
       .then((r) => r.blob())
       .then(
@@ -1914,11 +1921,21 @@ export default function DecisionTerritorialePage() {
     const ensure = (height: number) => {
       if (y + height > 280) newPage();
     };
+    const rowHeight = (raw: string) => {
+      const value = String(raw || "Non renseigné"),
+        valueLines = pdf.splitTextToSize(value, 112);
+      return Math.max(10, 5 + valueLines.length * 3.5);
+    };
+    const usablePageHeight = 280 - 46;
     const section = (
       title: string,
       rows: [string, string][],
       accent: [number, number, number] = navy,
     ) => {
+      const headerH = 11,
+        totalH =
+          headerH + rows.reduce((sum, [, raw]) => sum + rowHeight(raw), 0) + 4;
+      if (totalH <= usablePageHeight && y + totalH > 280) newPage();
       ensure(16);
       pdf.setFillColor(...accent);
       pdf.roundedRect(14, y, 182, 8, 2, 2, "F");
@@ -2419,13 +2436,51 @@ export default function DecisionTerritorialePage() {
       ],
       [0, 167, 181],
     );
-    section(
-      "Sources",
-      SOURCE_LINKS.map((source) => [
-        source[0],
-        `${source[1]} · ${source[2]} · mise à jour ${source[3]}`,
-      ]),
-    );
+    newPage();
+    const paletteAccents: [number, number, number][] = [
+      navy,
+      [0, 167, 181],
+      [24, 117, 60],
+      [228, 121, 74],
+      [165, 88, 160],
+      [0, 120, 243],
+    ];
+    pdf.setFillColor(...accentTint(navy, 0.06));
+    pdf.roundedRect(14, y, 182, 8, 2, 2, "F");
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.text("SOURCES, MILLÉSIMES ET LICENCES", 19, y + 5.4);
+    y += 13;
+    const cols = 2,
+      gap = 4,
+      cardW = (182 - gap * (cols - 1)) / cols,
+      cardH = 13.2;
+    SOURCE_LINKS.forEach((source, index) => {
+      const col = index % cols,
+        row = Math.floor(index / cols),
+        x = 14 + col * (cardW + gap),
+        cardY = y + row * (cardH + 2),
+        accent = paletteAccents[index % paletteAccents.length];
+      pdf.setFillColor(...accentTint(accent, 0.07));
+      pdf.roundedRect(x, cardY, cardW, cardH, 1.6, 1.6, "F");
+      pdf.setFillColor(...accent);
+      pdf.circle(x + 4, cardY + 4, 1.1, "F");
+      pdf.setTextColor(...deep);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6.8);
+      pdf.text(pdf.splitTextToSize(String(source[0]), cardW - 9), x + 7.5, cardY + 4.6);
+      pdf.setTextColor(...muted);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(5.6);
+      pdf.text(String(source[1]), x + 3, cardY + 8.6);
+      pdf.setTextColor(...accent);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(5.4);
+      pdf.text(String(source[3]).toUpperCase(), x + cardW - 3, cardY + 4.4, {
+        align: "right",
+      });
+    });
     footer();
     const url = URL.createObjectURL(pdf.output("blob"));
     if (viewer) viewer.location.replace(url);
