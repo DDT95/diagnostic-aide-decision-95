@@ -1090,15 +1090,6 @@ export default function DecisionTerritorialePage() {
         )
           .addTo(map)
           .bringToBack();
-        jsonOr<any>(
-          "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=ADMINEXPRESS-COG-CARTO-PE.LATEST%3Adepartement&outputFormat=application%2Fjson&CQL_FILTER=code_insee%3D%2795%27&srsName=EPSG%3A4326",
-          { features: [] },
-        ).then((boundary) =>
-          L.geoJSON(boundary, {
-            style: { color: "#000091", weight: 2.5, fill: false },
-            interactive: false,
-          }).addTo(map),
-        );
       });
     };
     const existing = document.querySelector<HTMLScriptElement>(
