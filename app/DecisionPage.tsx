@@ -780,15 +780,28 @@ async function jsonOr<T>(
   fallback: T,
   signal?: AbortSignal,
 ): Promise<T> {
+  const [data] = await jsonOrDiag(url, fallback, signal);
+  return data;
+}
+
+async function jsonOrDiag<T>(
+  url: string,
+  fallback: T,
+  signal?: AbortSignal,
+): Promise<[T, string | null]> {
   try {
     const requestSignal = signal
       ? AbortSignal.any([signal, AbortSignal.timeout(8000)])
       : AbortSignal.timeout(8000);
     const response = await fetch(url, { signal: requestSignal });
-    if (!response.ok) throw new Error(String(response.status));
-    return await response.json();
-  } catch {
-    return fallback;
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return [await response.json(), null];
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return [fallback, "délai dépassé"];
+    return [
+      fallback,
+      err instanceof Error ? err.message : "erreur réseau/CORS",
+    ];
   }
 }
 
@@ -1149,19 +1162,19 @@ export default function DecisionTerritorialePage() {
       publicOwners: [],
     });
     drawSelection(lon, lat);
-    const [ban, parcel, zones, supS, supL, supP, risks, iso15] =
+    const [ban, [parcel, parcelErr], [zones, zonesErr], supS, supL, supP, risks, iso15] =
       await Promise.all([
         jsonOr<any>(
           `https://api-adresse.data.gouv.fr/reverse/?lon=${lon}&lat=${lat}&limit=1`,
           {},
           controller.signal,
         ),
-        jsonOr<any>(
+        jsonOrDiag<any>(
           `https://apicarto.ign.fr/api/cadastre/parcelle?geom=${geom}`,
           { features: [] },
           controller.signal,
         ),
-        jsonOr<any>(
+        jsonOrDiag<any>(
           `https://apicarto.ign.fr/api/gpu/zone-urba?geom=${geom}`,
           { features: [] },
           controller.signal,
@@ -1191,8 +1204,17 @@ export default function DecisionTerritorialePage() {
     if (controller.signal.aborted) return;
     const address = ban.features?.[0]?.properties || {};
     if (!parcel.features?.length)
-      errors.push("Parcelle non retournée au point");
-    if (!zones.features?.length) errors.push("Zonage GPU non retourné");
+      errors.push(
+        parcelErr
+          ? `Cadastre IGN indisponible (${parcelErr})`
+          : "Aucune parcelle cadastrée à ce point",
+      );
+    if (!zones.features?.length)
+      errors.push(
+        zonesErr
+          ? `Zonage GPU indisponible (${zonesErr})`
+          : "Zonage GPU non retourné",
+      );
     const [pprn, tri, azi, radon, cavities, icpe] = await Promise.all([
       jsonOr<any>(
         `https://www.georisques.gouv.fr/api/v1/gaspar/pprn?codeInsee=${spatialCode}`,
@@ -3118,6 +3140,11 @@ export default function DecisionTerritorialePage() {
           {analysis && (
             <>
               <div className="decision-body">
+                {analysis.errors.length > 0 && (
+                  <div className="decision-alert">
+                    {analysis.errors.join(" · ")}
+                  </div>
+                )}
                 <Section
                   title="Parcelle et urbanisme"
                   state={
@@ -3882,11 +3909,6 @@ export default function DecisionTerritorialePage() {
                     />
                   </div>
                 </Section>
-                {analysis.errors.length > 0 && (
-                  <div className="decision-alert">
-                    {analysis.errors.join(" · ")}
-                  </div>
-                )}
               </div>
               <div className="decision-actions">
                 <button onClick={openDecisionPdf}>
