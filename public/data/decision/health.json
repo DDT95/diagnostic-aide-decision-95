@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-21T09:55:11.094Z",
-  "status": "ok",
+  "generatedAt": "2026-09-28T10:53:13.131Z",
+  "status": "degraded",
   "sources": [
     {
       "id": "adresse",
@@ -11,8 +11,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.158Z",
-      "durationMs": 640
+      "checkedAt": "2026-09-28T10:53:01.467Z",
+      "durationMs": 801
     },
     {
       "id": "cadastre",
@@ -23,8 +23,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.764Z",
-      "durationMs": 1214
+      "checkedAt": "2026-09-28T10:53:01.698Z",
+      "durationMs": 878
     },
     {
       "id": "gpu",
@@ -35,8 +35,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.748Z",
-      "durationMs": 1197
+      "checkedAt": "2026-09-28T10:53:01.721Z",
+      "durationMs": 899
     },
     {
       "id": "sup",
@@ -47,8 +47,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.948Z",
-      "durationMs": 1396
+      "checkedAt": "2026-09-28T10:53:01.970Z",
+      "durationMs": 1147
     },
     {
       "id": "risques",
@@ -57,10 +57,11 @@
       "url": "https://georisques.gouv.fr/api/v1/gaspar/risques?latlon=2.1,49.05",
       "frequency": "temps réel",
       "critical": true,
-      "status": "ok",
-      "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.723Z",
-      "durationMs": 1170
+      "status": "error",
+      "httpStatus": null,
+      "checkedAt": "2026-09-28T10:53:11.315Z",
+      "durationMs": 10492,
+      "error": "fetch failed"
     },
     {
       "id": "services",
@@ -71,8 +72,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.503Z",
-      "durationMs": 949
+      "checkedAt": "2026-09-28T10:53:01.503Z",
+      "durationMs": 679
     },
     {
       "id": "isochrones",
@@ -83,8 +84,8 @@
       "critical": true,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:09.394Z",
-      "durationMs": 1839
+      "checkedAt": "2026-09-28T10:53:02.048Z",
+      "durationMs": 1223
     },
     {
       "id": "ddt95-open-data",
@@ -95,8 +96,8 @@
       "critical": false,
       "status": "ok",
       "httpStatus": 200,
-      "checkedAt": "2026-09-21T09:55:08.956Z",
-      "durationMs": 1400
+      "checkedAt": "2026-09-28T10:53:01.732Z",
+      "durationMs": 907
     }
   ]
 }
